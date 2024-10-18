@@ -13,21 +13,28 @@ clock = pygame.time.Clock()
 # Call the C function outputBoard (already compiled to WASM)
 def get_initial_board():
     # Assuming initializeChessBoard and fillBoard are available via ccall
+    print("Calling initializeChessBoard and fillBoard...")
     board_ptr = js.Module.ccall("initializeChessBoard", "number", [], [])
     js.Module.ccall("fillBoard", None, ["number"], [board_ptr])
 
     # Call the outputBoard function from WASM to retrieve board state
+    print("Calling outputBoard...")
     board_string = js.Module.ccall("outputBoard", "string", ["number"], [board_ptr])
+    print(f"Board string retrieved: {board_string}")
     return board_string
 
 async def main():
     running = True
     board_data = None
 
+    # Wait before getting the board to make sure WASM is initialized
+    await asyncio.sleep(1)  # Adding delay to allow WASM to be fully ready
+
     # Get the board from WASM
     while board_data is None:
         try:
             board_data = get_initial_board()
+            print(f"Initial board data: {board_data}")
         except Exception as e:
             print(f"Error fetching board: {e}")
 
