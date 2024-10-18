@@ -1,43 +1,64 @@
 import pygame
-import sys
+import js  # This is provided by Pygbag to interact with WebAssembly
 import asyncio
 
 # Initialize Pygame
 pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("Chess Game")
 
-# Screen dimensions
-screen_width = 800
-screen_height = 600
+font = pygame.font.Font(None, 36)
+clock = pygame.time.Clock()
 
-# Create the screen object
-screen = pygame.display.set_mode((screen_width, screen_height))
+# Call the C function outputBoard (already compiled to WASM)
+def get_initial_board():
+    # Assuming initializeChessBoard and fillBoard are available via ccall
+    board_ptr = js.Module.ccall("initializeChessBoard", "number", [], [])
+    js.Module.ccall("fillBoard", None, ["number"], [board_ptr])
 
-# Set a title for the window
-pygame.display.set_caption("Red Screen")
-
-# Define a color (RGB) for blue
-blue = (255, 0, 0)
+    # Call the outputBoard function from WASM to retrieve board state
+    board_string = js.Module.ccall("outputBoard", "string", ["number"], [board_ptr])
+    return board_string
 
 async def main():
-    # Main loop
     running = True
+    board_data = None
+
+    # Get the board from WASM
+    while board_data is None:
+        try:
+            board_data = get_initial_board()
+        except Exception as e:
+            print(f"Error fetching board: {e}")
+
+    # Main game loop
     while running:
+        clock.tick(60)
+
         # Handle events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-        # Fill the screen with blue
-        screen.fill(blue)
+        # Fill the screen with white
+        screen.fill((255, 255, 255))
 
-        # Update the screen
+        # Display the board string (if retrieved)
+        if board_data:
+            y = 50
+            for line in board_data.split("\n"):
+                text = font.render(line, True, (0, 0, 0))
+                screen.blit(text, (50, y))
+                y += 40
+
+        # Update the display
         pygame.display.flip()
 
-        # Use asyncio sleep to allow other tasks to run
-        await asyncio.sleep(0)  # Yield control to the event loop
+        # Let asyncio yield control to other tasks
+        await asyncio.sleep(0)
 
+    # Quit Pygame once the game loop ends
     pygame.quit()
-    sys.exit()
 
-# Run the asyncio event loop
+# Start the asyncio event loop and run the game
 asyncio.run(main())
