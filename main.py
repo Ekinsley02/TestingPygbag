@@ -1,43 +1,51 @@
 import pygame
-import sys
-import asyncio
+import js  # This is provided by Pygbag to interact with WebAssembly
 
 # Initialize Pygame
 pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("Chess Game")
 
-# Screen dimensions
-screen_width = 800
-screen_height = 600
+font = pygame.font.Font(None, 36)
+clock = pygame.time.Clock()
 
-# Create the screen object
-screen = pygame.display.set_mode((screen_width, screen_height))
+# Call the C function outputBoard (already compiled to WASM)
+def get_initial_board():
+    # Assuming initializeChessBoard and fillBoard are available via ccall
+    board_ptr = js.Module.ccall("initializeChessBoard", "number", [], [])
+    js.Module.ccall("fillBoard", None, ["number"], [board_ptr])
 
-# Set a title for the window
-pygame.display.set_caption("Blue Screen")
+    # Call the outputBoard function from WASM to retrieve board state
+    board_string = js.Module.ccall("outputBoard", "string", ["number"], [board_ptr])
+    return board_string
 
-# Define a color (RGB) for blue
-blue = (0, 0, 255)
+# Main game loop
+running = True
+board_data = None
 
-async def main():
-    # Main loop
-    running = True
-    while running:
-        # Handle events
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+# Get the board from WASM
+while board_data is None:
+    try:
+        board_data = get_initial_board()
+    except Exception as e:
+        print(f"Error fetching board: {e}")
 
-        # Fill the screen with blue
-        screen.fill(blue)
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
-        # Update the screen
-        pygame.display.flip()
+    screen.fill((255, 255, 255))
 
-        # Use asyncio sleep to allow other tasks to run
-        await asyncio.sleep(0)  # Yield control to the event loop
+    # Display the board string (if retrieved)
+    if board_data:
+        y = 50
+        for line in board_data.split("\n"):
+            text = font.render(line, True, (0, 0, 0))
+            screen.blit(text, (50, y))
+            y += 40
 
-    pygame.quit()
-    sys.exit()
+    pygame.display.flip()
+    clock.tick(60)
 
-# Run the asyncio event loop
-asyncio.run(main())
+pygame.quit()
