@@ -1,59 +1,36 @@
 import pygame
-import js  # This is provided by Pygbag to interact with WebAssembly
-import asyncio
-
+import sys
 
 # Initialize Pygame
 pygame.init()
-screen = pygame.display.set_mode((800, 600))
-pygame.display.set_caption("Chess Game")
 
-font = pygame.font.Font(None, 36)
-clock = pygame.time.Clock()
+# Screen dimensions
+screen_width = 800
+screen_height = 600
 
-# Call the C function outputBoard (already compiled to WASM)
-def get_initial_board():
-    # Assuming initializeChessBoard and fillBoard are available via ccall
-    board_ptr = js.Module.ccall("initializeChessBoard", "number", [], [])
-    js.Module.ccall("fillBoard", None, ["number"], [board_ptr])
+# Create the screen object
+screen = pygame.display.set_mode((screen_width, screen_height))
 
-    # Call the outputBoard function from WASM to retrieve board state
-    board_string = js.Module.ccall("outputBoard", "string", ["number"], [board_ptr])
-    return board_string
+# Set a title for the window
+pygame.display.set_caption("Blue Screen")
 
-# Main game loop
+# Define a color (RGB) for blue
+blue = (0, 0, 255)
+
+# Main loop
 running = True
-board_data = None
-
-# Get the board from WASM
-while board_data is None:
-    try:
-        board_data = get_initial_board()
-    except Exception as e:
-        print(f"Error fetching board: {e}")
-
 while running:
-    clock.tick(60)
-
-    asyncio.sleep(0)
-    a
+    # Handle events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill((255, 255, 255))
+    # Fill the screen with blue
+    screen.fill(blue)
 
-    # Display the board string (if retrieved)
-    if board_data:
-        y = 50
-        for line in board_data.split("\n"):
-            text = font.render(line, True, (0, 0, 0))
-            screen.blit(text, (50, y))
-            y += 40
-
+    # Update the screen
     pygame.display.flip()
 
-
+# Quit Pygame
 pygame.quit()
-
-asyncio.run(main())
+sys.exit()
