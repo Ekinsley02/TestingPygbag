@@ -1,5 +1,6 @@
 import pygame
 import sys
+import asyncio
 
 # Initialize Pygame
 pygame.init()
@@ -17,20 +18,26 @@ pygame.display.set_caption("Blue Screen")
 # Define a color (RGB) for blue
 blue = (0, 0, 255)
 
-# Main loop
-running = True
-while running:
-    # Handle events
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+async def main():
+    # Main loop
+    running = True
+    while running:
+        # Handle events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
-    # Fill the screen with blue
-    screen.fill(blue)
+        # Fill the screen with blue
+        screen.fill(blue)
 
-    # Update the screen
-    pygame.display.flip()
+        # Update the screen
+        pygame.display.flip()
 
-# Quit Pygame
-pygame.quit()
-sys.exit()
+        # Use asyncio sleep to allow other tasks to run
+        await asyncio.sleep(0)  # Yield control to the event loop
+
+    pygame.quit()
+    sys.exit()
+
+# Run the asyncio event loop
+asyncio.run(main())
