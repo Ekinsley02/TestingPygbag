@@ -16,7 +16,7 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Red Screen")
 
 # Define a color (RGB) for blue
-blue = (0, 0, 255)
+blue = (255, 0, 0)
 
 async def main():
     # Main loop
