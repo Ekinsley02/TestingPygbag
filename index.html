@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chess Game</title>
+    <script src="your_module.js"></script> <!-- Your generated JS file from Emscripten -->
+</head>
+<body>
+    <h1>Chess Game</h1>
+    <pre id="board"></pre>
+    <script>
+        Module.onRuntimeInitialized = async () => {
+            // Initialize the chess board
+            let board_ptr = Module.ccall("initializeChessBoard", "number", [], []);
+            Module.ccall("fillBoard", null, ["number"], [board_ptr]);
+
+            // Call the outputBoard function from WASM and retrieve the board state
+            let board_string = Module.ccall("outputBoard", "string", ["number"], [board_ptr]);
+            document.getElementById("board").textContent = board_string; // Display the board
+        };
+    </script>
+</body>
+</html>
