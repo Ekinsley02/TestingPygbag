@@ -51,7 +51,9 @@ async def main():
                 y += 40
 
         pygame.display.flip()
+        await asyncio.sleep(0)
         clock.tick(60)
+        
 
     pygame.quit()
 
