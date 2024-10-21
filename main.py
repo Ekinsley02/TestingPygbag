@@ -5,7 +5,7 @@ import asyncio
 # Initialize Pygame
 pygame.init()
 screen = pygame.display.set_mode((800, 600))
-pygame.display.set_caption("Chess Game")
+pygame.display.set_caption("Chess Game1")
 
 font = pygame.font.Font(None, 36)
 clock = pygame.time.Clock()
