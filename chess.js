@@ -380,7 +380,6 @@ function checkStackCookie() {
 // end include: runtime_stack_check.js
 var __ATPRERUN__  = []; // functions called before the runtime is initialized
 var __ATINIT__    = []; // functions called during startup
-var __ATMAIN__    = []; // functions called when main() is to be run
 var __ATEXIT__    = []; // functions called during shutdown
 var __ATPOSTRUN__ = []; // functions called after the main() is called
 
@@ -410,12 +409,6 @@ TTY.init();
   callRuntimeCallbacks(__ATINIT__);
 }
 
-function preMain() {
-  checkStackCookie();
-  
-  callRuntimeCallbacks(__ATMAIN__);
-}
-
 function postRun() {
   checkStackCookie();
 
@@ -434,10 +427,6 @@ function addOnPreRun(cb) {
 
 function addOnInit(cb) {
   __ATINIT__.unshift(cb);
-}
-
-function addOnPreMain(cb) {
-  __ATMAIN__.unshift(cb);
 }
 
 function addOnExit(cb) {
@@ -3810,51 +3799,6 @@ function dbg(...args) {
   }
   }
 
-  
-  var runtimeKeepaliveCounter = 0;
-  var keepRuntimeAlive = () => noExitRuntime || runtimeKeepaliveCounter > 0;
-  var _proc_exit = (code) => {
-      EXITSTATUS = code;
-      if (!keepRuntimeAlive()) {
-        Module['onExit']?.(code);
-        ABORT = true;
-      }
-      quit_(code, new ExitStatus(code));
-    };
-  
-  /** @param {boolean|number=} implicit */
-  var exitJS = (status, implicit) => {
-      EXITSTATUS = status;
-  
-      checkUnflushedContent();
-  
-      // if exit() was called explicitly, warn the user if the runtime isn't actually being shut down
-      if (keepRuntimeAlive() && !implicit) {
-        var msg = `program exited (with status: ${status}), but keepRuntimeAlive() is set (counter=${runtimeKeepaliveCounter}) due to an async operation, so halting execution but not exiting the runtime or preventing further async execution (you can use emscripten_force_exit, if you want to force a true shutdown)`;
-        err(msg);
-      }
-  
-      _proc_exit(status);
-    };
-
-  var handleException = (e) => {
-      // Certain exception types we do not treat as errors since they are used for
-      // internal control flow.
-      // 1. ExitStatus, which is thrown by exit()
-      // 2. "unwind", which is thrown by emscripten_unwind_to_js_event_loop() and others
-      //    that wish to return to JS event loop.
-      if (e instanceof ExitStatus || e == 'unwind') {
-        return EXITSTATUS;
-      }
-      checkStackCookie();
-      if (e instanceof WebAssembly.RuntimeError) {
-        if (_emscripten_stack_get_current() <= 0) {
-          err('Stack overflow detected.  You can try increasing -sSTACK_SIZE (currently set to 65536)');
-        }
-      }
-      quit_(1, e);
-    };
-
   var getCFunc = (ident) => {
       var func = Module['_' + ident]; // closure exported function
       assert(func, 'Cannot call unknown function ' + ident + ', make sure it is exported');
@@ -3940,17 +3884,6 @@ function dbg(...args) {
       return ret;
     };
 
-  
-  
-    /**
-     * @param {string=} returnType
-     * @param {Array=} argTypes
-     * @param {Object=} opts
-     */
-  var cwrap = (ident, returnType, argTypes, opts) => {
-      return (...args) => ccall(ident, returnType, argTypes, args, opts);
-    };
-
   FS.createPreloadedFile = FS_createPreloadedFile;
   FS.staticInit();
   // Set module methods based on EXPORTED_RUNTIME_METHODS
@@ -3974,12 +3907,8 @@ var wasmImports = {
 };
 var wasmExports = createWasm();
 var ___wasm_call_ctors = createExportWrapper('__wasm_call_ctors', 0);
-var _outputBoard = Module['_outputBoard'] = createExportWrapper('outputBoard', 1);
-var ___original_main = Module['___original_main'] = createExportWrapper('__original_main', 0);
-var _initializeChessBoard = Module['_initializeChessBoard'] = createExportWrapper('initializeChessBoard', 2);
-var _fillBoard = Module['_fillBoard'] = createExportWrapper('fillBoard', 3);
-var _main = Module['_main'] = createExportWrapper('main', 2);
 var _isCheckmate = Module['_isCheckmate'] = createExportWrapper('isCheckmate', 3);
+var _initializeChessBoard = Module['_initializeChessBoard'] = createExportWrapper('initializeChessBoard', 2);
 var _copyBoard = Module['_copyBoard'] = createExportWrapper('copyBoard', 2);
 var _checkAllValidPawnPositions = Module['_checkAllValidPawnPositions'] = createExportWrapper('checkAllValidPawnPositions', 8);
 var _checkAllValidRookPositions = Module['_checkAllValidRookPositions'] = createExportWrapper('checkAllValidRookPositions', 12);
@@ -3999,6 +3928,7 @@ var _determineType = Module['_determineType'] = createExportWrapper('determineTy
 var _displayBottomBoard = Module['_displayBottomBoard'] = createExportWrapper('displayBottomBoard', 0);
 var _displayChessBoard = Module['_displayChessBoard'] = createExportWrapper('displayChessBoard', 3);
 var _displayTopBoard = Module['_displayTopBoard'] = createExportWrapper('displayTopBoard', 0);
+var _fillBoard = Module['_fillBoard'] = createExportWrapper('fillBoard', 3);
 var _highlightAttack = Module['_highlightAttack'] = createExportWrapper('highlightAttack', 8);
 var _putsOwnKingInCheck = Module['_putsOwnKingInCheck'] = createExportWrapper('putsOwnKingInCheck', 6);
 var _highlightRook = Module['_highlightRook'] = createExportWrapper('highlightRook', 5);
@@ -4009,7 +3939,6 @@ var _checkEdgePieceLeft = Module['_checkEdgePieceLeft'] = createExportWrapper('c
 var _checkEdgePieceRight = Module['_checkEdgePieceRight'] = createExportWrapper('checkEdgePieceRight', 2);
 var _pieceMoveHelper = Module['_pieceMoveHelper'] = createExportWrapper('pieceMoveHelper', 7);
 var _isInCheck = Module['_isInCheck'] = createExportWrapper('isInCheck', 3);
-var _isChar = Module['_isChar'] = createExportWrapper('isChar', 1);
 var _isStalemate = Module['_isStalemate'] = createExportWrapper('isStalemate', 2);
 var _movePiece = Module['_movePiece'] = createExportWrapper('movePiece', 7);
 var _playGame = Module['_playGame'] = createExportWrapper('playGame', 1);
@@ -4018,7 +3947,10 @@ var _selectNextPosition = Module['_selectNextPosition'] = createExportWrapper('s
 var _switchTurn = Module['_switchTurn'] = createExportWrapper('switchTurn', 1);
 var _putsOutOfCheck = Module['_putsOutOfCheck'] = createExportWrapper('putsOutOfCheck', 7);
 var _putsOpponentKingInCheck = Module['_putsOpponentKingInCheck'] = createExportWrapper('putsOpponentKingInCheck', 4);
-var _sendBoard = Module['_sendBoard'] = createExportWrapper('sendBoard', 1);
+var _outputBoard = Module['_outputBoard'] = createExportWrapper('outputBoard', 1);
+var _simpleOutput = Module['_simpleOutput'] = createExportWrapper('simpleOutput', 0);
+var ___original_main = Module['___original_main'] = createExportWrapper('__original_main', 0);
+var _main = createExportWrapper('main', 2);
 var _fflush = createExportWrapper('fflush', 1);
 var _strerror = createExportWrapper('strerror', 1);
 var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
@@ -4035,7 +3967,6 @@ var dynCall_jiji = Module['dynCall_jiji'] = createExportWrapper('dynCall_jiji', 
 // === Auto-generated postamble setup entry stuff ===
 
 Module['ccall'] = ccall;
-Module['cwrap'] = cwrap;
 var missingLibrarySymbols = [
   'writeI53ToI64',
   'writeI53ToI64Clamped',
@@ -4048,6 +3979,7 @@ var missingLibrarySymbols = [
   'convertU32PairToI53',
   'getTempRet0',
   'setTempRet0',
+  'exitJS',
   'growMemory',
   'inetPton4',
   'inetNtop4',
@@ -4064,6 +3996,8 @@ var missingLibrarySymbols = [
   'dynCallLegacy',
   'getDynCaller',
   'dynCall',
+  'handleException',
+  'keepRuntimeAlive',
   'runtimeKeepalivePush',
   'runtimeKeepalivePop',
   'callUserCallback',
@@ -4075,6 +4009,7 @@ var missingLibrarySymbols = [
   'STACK_ALIGN',
   'POINTER_SIZE',
   'ASSERTIONS',
+  'cwrap',
   'uleb128Encode',
   'sigToWasmTypes',
   'generateFuncType',
@@ -4227,7 +4162,6 @@ var unexportedSymbols = [
   'stackAlloc',
   'ptrToString',
   'zeroMemory',
-  'exitJS',
   'getHeapMax',
   'abortOnCannotGrowMemory',
   'ENV',
@@ -4242,8 +4176,6 @@ var unexportedSymbols = [
   'warnOnce',
   'readEmAsmArgsArray',
   'jstoi_s',
-  'handleException',
-  'keepRuntimeAlive',
   'asyncLoad',
   'alignMemory',
   'mmapAlloc',
@@ -4332,28 +4264,6 @@ dependenciesFulfilled = function runCaller() {
   if (!calledRun) dependenciesFulfilled = runCaller; // try this again later, after new deps are fulfilled
 };
 
-function callMain() {
-  assert(runDependencies == 0, 'cannot call main when async dependencies remain! (listen on Module["onRuntimeInitialized"])');
-  assert(calledPrerun, 'cannot call main without calling preRun first');
-
-  var entryFunction = _main;
-
-  var argc = 0;
-  var argv = 0;
-
-  try {
-
-    var ret = entryFunction(argc, argv);
-
-    // if we're not running an evented main loop, it's time to exit
-    exitJS(ret, /* implicit = */ true);
-    return ret;
-  }
-  catch (e) {
-    return handleException(e);
-  }
-}
-
 function stackCheckInit() {
   // This is normally called automatically during __wasm_call_ctors but need to
   // get these values before even running any of the ctors so we call it redundantly
@@ -4392,11 +4302,9 @@ function run() {
 
     initRuntime();
 
-    preMain();
-
     Module['onRuntimeInitialized']?.();
 
-    if (shouldRunNow) callMain();
+    assert(!Module['_main'], 'compiled without a main, but one is present. if you added it from JS, use Module["onRuntimeInitialized"]');
 
     postRun();
   }
@@ -4459,11 +4367,6 @@ if (Module['preInit']) {
     Module['preInit'].pop()();
   }
 }
-
-// shouldRunNow refers to calling main(), not run().
-var shouldRunNow = true;
-
-if (Module['noInitialRun']) shouldRunNow = false;
 
 run();
 
